@@ -16,7 +16,7 @@ def objective(trial):
         "dropout":0.1,
         "numLayers":trial.suggest_int("numLayers",3,6)
     }
-    best_loss = run_training_DNN(n_epochs=2,hyperpars=hpars,skip=False)
+    best_loss = run_training_DNN(n_epochs=2,hyperpars=hpars,skip=skip)
     print("Best loss of {} achieved!".format(best_loss))
     return best_loss
 
