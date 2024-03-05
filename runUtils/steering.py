@@ -128,7 +128,57 @@ def run_training_DNN(n_epochs,hyperpars,skip=False):
             best_loss=valid_loss
     
     return best_loss
+
+def run_training_CNN(n_epochs,hyperpars,skip=False):
+    data_pkl_str = '../all_samples_renormalized.pkl'
+
+    dataset=CNNDataset(data_pkl_str)
+    for i in tqdm(range(100)):
+        dataset.shuffle()
+
+    train_dataloader = DataLoader(dataset[:int(0.7*len(dataset))],batch_size=hyperpars['BSize'],shuffle=True,pin_memory=True,num_workers=16)
+    valid_dataloader = DataLoader(dataset[int(0.7*len(dataset)):int(0.9*len(dataset))],batch_size=hyperpars['BSize'])
+    test_dataloader = DataLoader(dataset[int(0.9*len(dataset)):],batch_size=hyperpars['BSize'])
     
+    net = CNN(in_n_pix=64, in_n_channels=3, filter_1_size=5, filter_2_size=5, filter_3_size=3)
+    trainable_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    print("Initialized CNN with {} trainable parameters!".format(trainable_params))
+    
+    optimizer = optim.Adam(net.parameters(), lr=hyperpars['lrate'], weight_decay=hyperpars['l2weight'])
+    loss_f = nn.BCEWithLogitsLoss()
+    
+    if torch.cuda.is_available():
+        net.cuda()
+        loss_f.to(torch.device('cuda'))
+        
+    steerer = DNNSteerer(model=net,optimizer=optimizer,loss_fn=loss_f)
+    pbar=tqdm(range(n_epochs))
+    
+    training_loss_vs_epoch = []
+    validation_loss_vs_epoch = []
+    training_acc_vs_epoch = []
+    validation_acc_vs_epoch = []
+    best_loss=np.inf
+    
+    for epoch in pbar:
+        preloss = steerer.train(train_dataloader)
+        
+        train_acc, train_loss = steerer.compute_accuracy_and_loss(train_dataloader)
+        valid_acc, valid_loss = steerer.compute_accuracy_and_loss(valid_dataloader)
+        
+        training_loss_vs_epoch.append( train_loss)    
+        training_acc_vs_epoch.append( train_acc ) 
+        validation_acc_vs_epoch.append(valid_acc)    
+        validation_loss_vs_epoch.append(valid_loss)
+        
+        if len(validation_loss_vs_epoch) > 0:
+            print(epoch, 'train loss',training_loss_vs_epoch[-1],'validation loss',validation_loss_vs_epoch[-1])
+            print(epoch, 'train acc',training_acc_vs_epoch[-1],'validation acc',validation_acc_vs_epoch[-1])
+        
+        if len(validation_loss_vs_epoch)==1 or np.amin(validation_loss_vs_epoch[:-1]) > validation_loss_vs_epoch[-1]:
+            best_loss=valid_loss
+    
+    return best_loss
 
 class DNNSteerer:
     def __init__(self,model,optimizer,loss_fn):
