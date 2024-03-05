@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-class ConvNet(nn.Module):
+class CNN(nn.Module):
     def __init__(self,n_pix):
         super().__init__()
 
