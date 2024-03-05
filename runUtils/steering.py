@@ -5,7 +5,6 @@ import random
 import math as m
 from datetime import datetime
 from models.DNN import DNN
-from models.CNN import CNN
 from models.DeepSet import DeepSet
 from runUtils.dataloaders import *
 
