@@ -2,13 +2,8 @@ import sys
 sys.path.append("../")
 from runUtils.steering import *
 import optuna
+torch.set_num_threads(torch.get_num_threads())
 
-# "BSize":1024,
-# "HS":48,
-# "lrate":1e-3,
-# "l2weight":1e-5,
-# "dropout":0.1,
-# "numLayers":5,
 skip=False
 version='ForOptuna_March2024'
 
@@ -27,7 +22,7 @@ def objective(trial):
 
 if __name__=="__main__":
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective,n_trials=2)
+    study.optimize(objective,n_trials=1)
     
     print("best trial:")
     trial_ = study.best_trial
