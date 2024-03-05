@@ -97,3 +97,35 @@ class GNNDataset(Dataset):
     def __getitem__(self, idx):
         
         return self.graphs[idx]
+
+class CNNDataset(Dataset):
+
+    def __init__(self, data_pkl_str, data_pkl_list = None, transform=None):
+        self.data_pkl_str = data_pkl_str
+    
+        if data_pkl_list == None:
+            self.data_list = pd.read_pickle(self.data_pkl_str)
+        else:
+            self.data_list = data_pkl_list
+    
+    def __getitem__(self, index): 
+        if isinstance(index,int):
+            image = self.data_list[index]['cell_image']
+            label = self.data_list[index]['truthmatch']
+            
+            return (image, label)
+
+        elif isinstance(index, slice):
+            new = DiTauDataset(data_pkl_str, self.data_list[index])
+            
+            return new
+    
+    def shuffle(self):
+        np.random.shuffle(self.data_list)
+        
+    def __len__(self):
+        return len(self.data_list)
+
+    def pop(self, index):
+        del(self.data_list[index])
+        gc.collect()
