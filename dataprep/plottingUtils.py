@@ -30,3 +30,14 @@ def add_axis_labels(df,ax,col_list):
         for i in range(ax.shape[0]):
             for j in range(ax.shape[1]):
                 ax[i][j].legend()
+                
+def plot_history(train_history,valid_history,plotstring="./loss",ylabel='Loss',outformat="png"):
+    fig,ax=plt.subplots(1,1,figsize=(24,16))
+    ax.plot(train_history, label='Training')
+    ax.plot(valid_history, label='Validation')
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Epoch')
+    ax.legend()
+    ax.grid()
+    plot_str="{instr}_{ylab}.{ft}".format(instr=plotstring,ylab=ylabel,ft=outformat)
+    plt.savefig(plot_str) 
