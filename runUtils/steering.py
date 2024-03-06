@@ -38,7 +38,7 @@ def run_training_DeepSet(sampled_g,n_epochs,hyperpars,save_model=False):
     hyperpar_str='DeepSet3M_{GA}_HS{hsp}x{hst}x{hso}_NDS{nds}_nLayer{nla}_DO{DO}_weight{regw}_Adam_lr{lr}_BS{bs}_{dt}_{ft}'.format(GA=('_GlobAtt' if hyperpars['GlobAtt'] else ''),hsp=hyperpars['hs_calo'],hst=hyperpars['hs_trk'],hso=hyperpars['hs_sj'],nds=hyperpars['num_modules'],nla=hyperpars['module_depth'],DO=hyperpars['dropout'],regw=hyperpars['l2weight'],lr=hyperpars['lrate'],bs=hyperpars['BSize'],dt=dtstr,ft=freetxt)
     loss_str='../trained_models/loss_{}.pt'.format(hyperpar_str)
     ROC_str='../trained_models/ROC_{}.csv'.format(hyperpar_str)
-    plot_str='../trained_models/{}.png'.format(hyperpar_str)
+    plot_str='../trained_models/{}'.format(hyperpar_str)
     
     net = DeepSet(hs_point=hyperpars['hs_calo'],hs_trk=hyperpars['hs_trk'],hs_sj=hyperpars['hs_sj'],num_modules=hyperpars['num_modules'],module_depth=hyperpars['module_depth'],DOfrac=hyperpars['dropout'],GlobAtt=hyperpars['GlobAtt'])
     trainable_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
@@ -80,15 +80,22 @@ def run_training_DeepSet(sampled_g,n_epochs,hyperpars,save_model=False):
             if save_model:
                 torch.save(net.state_dict(), loss_str)
     
-    return best_loss
+    return {'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
 
-def run_training_DNN(n_epochs,hyperpars,skip=False):
+def run_training_DNN(n_epochs,hyperpars,skip=False,save_model=False):
     train_ds = MLPDataset("../dataset_train_balanced_v02.csv")
     valid_ds = MLPDataset("../dataset_valid_balanced_v02.csv")
     test_ds = MLPDataset("../dataset_test_balanced_v02.csv")
     train_dataloader = DataLoader(train_ds,batch_size=hyperpars['BSize'],shuffle=True,pin_memory=True,num_workers=16)
     valid_dataloader = DataLoader(valid_ds,batch_size=hyperpars['BSize'])
     test_dataloader = DataLoader(test_ds,batch_size=hyperpars['BSize'])
+    
+    dtstr = (datetime.now()).strftime("%d%m%Y_%H%M%S")
+    freetxt='ForOptuna_Feb2024'
+    hyperpar_str='DNN_HS{hs}xDepth{nl}{sk}DO{DO}_weight{regw}_scFeats_noposw_Adam_lr{lr}_BS{bs}_{dt}_{ft}'.format(hs=hyperpars['HS'],nl=hyperpars['numLayers'],sk=('_skip_' if skip else '_'),DO=hyperpars['dropout'],regw=hyperpars['l2weight'],lr=hyperpars['lrate'],bs=hyperpars['BSize'],dt=dtstr,ft=freetxt)
+    loss_str='../trained_models/loss_{}.pt'.format(hyperpar_str)
+    ROC_str='../trained_models/ROC_{}.csv'.format(hyperpar_str)
+    plot_str='../trained_models/{}'.format(hyperpar_str)
     
     net = DNN(useSkip=skip,DOfrac=hyperpars['dropout'],HSize=hyperpars['HS'],nLayers=hyperpars['numLayers'])
     trainable_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
@@ -127,8 +134,11 @@ def run_training_DNN(n_epochs,hyperpars,skip=False):
         
         if len(validation_loss_vs_epoch)==1 or np.amin(validation_loss_vs_epoch[:-1]) > validation_loss_vs_epoch[-1]:
             best_loss=valid_loss
+            if save_model:
+                torch.save(net.state_dict(), loss_str)
     
-    return best_loss
+    return {'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
+
 
 def run_training_CNN(n_epochs,hyperpars,skip=False):
     data_pkl_str = '../all_samples_renormalized.pkl'
@@ -291,4 +301,3 @@ class DeepSetSteerer:
             self.optimizer.step()
             final_loss+=loss.item()
         return final_loss / n_batches
-        
