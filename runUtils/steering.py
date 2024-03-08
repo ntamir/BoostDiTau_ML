@@ -140,7 +140,7 @@ def run_training_DNN(n_epochs,hyperpars,skip=False,save_model=False):
     return {'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
 
 
-def run_training_CNN(n_epochs,hyperpars,skip=False):
+def run_training_CNN(n_epochs,hyperpars):
     data_pkl_str = '../all_samples_renormalized.pkl'
 
     dataset=CNNDataset(data_pkl_str)
