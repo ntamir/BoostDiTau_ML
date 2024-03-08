@@ -14,7 +14,9 @@ def objective(trial):
         "lrate":1e-3,
         "l2weight":1e-5,
         "dropout":0.1,
-        "numLayers":trial.suggest_int("numLayers",4,5)
+        "filter_1_size":trial.suggest_int("filter_1_size",3,5,step=2),
+        "filter_2_size":trial.suggest_int("filter_2_size",3,5,step=2),
+        "filter_3_size":trial.suggest_int("filter_3_size",3,5,step=2)
     }
     best_loss = run_training_CNN(n_epochs=100,hyperpars=hpars,skip=skip)
     print("Best loss of {} achieved!".format(best_loss))
