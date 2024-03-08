@@ -140,7 +140,7 @@ def run_training_DNN(n_epochs,hyperpars,skip=False,save_model=False):
     return {'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
 
 
-def run_training_CNN(n_epochs,hyperpars):
+def run_training_CNN(n_epochs,hyperpars,save_model=False):
     data_pkl_str = '../all_samples_renormalized.pkl'
 
     dataset=CNNDataset(data_pkl_str)
@@ -150,8 +150,15 @@ def run_training_CNN(n_epochs,hyperpars):
     train_dataloader = DataLoader(dataset[:int(0.7*len(dataset))],batch_size=hyperpars['BSize'],shuffle=True,pin_memory=True,num_workers=16)
     valid_dataloader = DataLoader(dataset[int(0.7*len(dataset)):int(0.9*len(dataset))],batch_size=hyperpars['BSize'])
     test_dataloader = DataLoader(dataset[int(0.9*len(dataset)):],batch_size=hyperpars['BSize'])
+
+    dtstr = (datetime.now()).strftime("%d%m%Y_%H%M%S")
+    freetxt='ForOptuna_Mar2024'
+    hyperpar_str='DO{DO}_weight{regw}_lr{lr}_BS{bs}_filt1-{filt1}_filt2-{filt2}_filt3-{filt3}_{dt}_{ft}'.format(DO=hyperpars['dropout'],regw=hyperpars['l2weight'],lr=hyperpars['lrate'],bs=hyperpars['BSize'],dt=dtstr,ft=freetxt,filt1=hyperpar['filter_1_size'],filt2=hyperpar['filter_2_size'],filt3=hyperpar['filter_3_size'])
+    loss_str='../trained_models/loss_{}.pt'.format(hyperpar_str)
+    ROC_str='../trained_models/ROC_{}.csv'.format(hyperpar_str)
+    plot_str='../trained_models/{}'.format(hyperpar_str)
     
-    net = CNN(in_n_pix=64, in_n_channels=3, filter_1_size=5, filter_2_size=5, filter_3_size=3)
+    net = CNN(in_n_pix=64, in_n_channels=3, filter_1_size=hyperpar['filter_1_size'], filter_2_size=hyperpar['filter_2_size'], filter_3_size=hyperpar['filter_3_size'],DOfrac=hyperpar['dropout'])
     trainable_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
     print("Initialized CNN with {} trainable parameters!".format(trainable_params))
     
@@ -188,8 +195,10 @@ def run_training_CNN(n_epochs,hyperpars):
         
         if len(validation_loss_vs_epoch)==1 or np.amin(validation_loss_vs_epoch[:-1]) > validation_loss_vs_epoch[-1]:
             best_loss=valid_loss
+            if save_model:
+                torch.save(net.state_dict(), loss_str)
     
-    return best_loss
+    return {'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
 
 class DNNSteerer:
     def __init__(self,model,optimizer,loss_fn):
