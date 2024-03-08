@@ -10,7 +10,6 @@ version='ForOptuna_March2024'
 def objective(trial):
     hpars = {
         "BSize":32,
-        "HS":48,
         "lrate":1e-3,
         "l2weight":1e-5,
         "dropout":0.1,
