@@ -121,7 +121,8 @@ class CNNDataset(Dataset):
             return new
     
     def shuffle(self):
-        np.random.shuffle(self.data_list)
+        rng = np.random.default_rng(0)
+        rng.shuffle(self.data_list)
         
     def __len__(self):
         return len(self.data_list)
