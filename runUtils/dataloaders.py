@@ -9,6 +9,7 @@ import torch.nn as nn
 import numpy as np
 import dgl
 from tqdm import tqdm
+from dataprep.dglUtils import *
 import gc
 
 class MLPDataset(Dataset):

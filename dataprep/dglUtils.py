@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from tqdm.notebook import tqdm
+#from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -15,11 +15,11 @@ from dgl.data.utils import *
 
 def plot_calo_constits(g_input,ax,size=1):
     g = g_input.to(torch.device('cpu')) # Assume the original device is GPU
-    x = g.nodes['points'].data['center'][:,0].data.numpy()
-    y = g.nodes['points'].data['center'][:,1].data.numpy()
-    t = g.nodes['points'].data['type'].data.numpy()
-    object_centers = g.nodes['predicted objects'].data['center'].data.numpy()
-    object_TruthMatch = g.nodes['predicted objects'].data['TruthMatch'].data.numpy()
+    x = g.nodes['cells'].data['center'][:,0].data.numpy()
+    y = g.nodes['cells'].data['center'][:,1].data.numpy()
+    t = g.nodes['cells'].data['type'].data.numpy()
+    object_centers = g.nodes['subjets'].data['center'].data.numpy()
+    object_TruthMatch = g.nodes['subjets'].data['TruthMatch'].data.numpy()
 
     ax.scatter(x,y,c=t,cmap='Paired',s=size, vmin=2,vmax=4)
     
@@ -34,8 +34,8 @@ def plot_calo_constits(g_input,ax,size=1):
     
 def find_leadSJ_angle(g_input):
     g = g_input.to(torch.device('cpu')) # Assume the original device is GPU
-    x = g.nodes['predicted objects'].data['center'][0,0].data.numpy()
-    y = g.nodes['predicted objects'].data['center'][0,1].data.numpy()
+    x = g.nodes['subjets'].data['center'][0,0].data.numpy()
+    y = g.nodes['subjets'].data['center'][0,1].data.numpy()
     angle = np.arctan2(y,x)
     return angle
 
@@ -46,8 +46,8 @@ def rotate_graph(g_input, theta):
     Rmatrix = torch.tensor([[torch.cos(-theta), -torch.sin(-theta)], 
                             [torch.sin(-theta), torch.cos(-theta)]], dtype=torch.float64)
     
-    g.nodes['predicted objects'].data['center'] = torch.t(torch.mm(Rmatrix, torch.t(g.nodes['predicted objects'].data['center'])))
-    g.nodes['points'].data['center'] = torch.t(torch.mm(Rmatrix, torch.t(g.nodes['points'].data['center'])))
+    g.nodes['subjets'].data['center'] = torch.t(torch.mm(Rmatrix, torch.t(g.nodes['subjets'].data['center'])))
+    g.nodes['cells'].data['center'] = torch.t(torch.mm(Rmatrix, torch.t(g.nodes['cells'].data['center'])))
     g.nodes['tracks'].data['center'] = torch.t(torch.mm(Rmatrix, torch.t(g.nodes['tracks'].data['center'])))
     
     g_input = g.to(device)  # Convert back to original device
