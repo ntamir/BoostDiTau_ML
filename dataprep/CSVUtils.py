@@ -1,10 +1,6 @@
 import pandas as pd
-import torch
 from torch.utils.data import Dataset
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.preprocessing import StandardScaler
 
 def trf_abs(df,varname):
     df[varname]=(abs(df[varname]))

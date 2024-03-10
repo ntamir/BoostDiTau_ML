@@ -37,7 +37,7 @@ def run_training_DeepSet(sampled_g,n_epochs,hyperpars,save_model=False):
     freetxt='ForOptuna_Feb2024'
     hyperpar_str='DeepSet3M_{GA}_HS{hsp}x{hst}x{hso}_NDS{nds}_nLayer{nla}_DO{DO}_weight{regw}_Adam_lr{lr}_BS{bs}_{dt}_{ft}'.format(GA=('_GlobAtt' if hyperpars['GlobAtt'] else ''),hsp=hyperpars['hs_calo'],hst=hyperpars['hs_trk'],hso=hyperpars['hs_sj'],nds=hyperpars['num_modules'],nla=hyperpars['module_depth'],DO=hyperpars['dropout'],regw=hyperpars['l2weight'],lr=hyperpars['lrate'],bs=hyperpars['BSize'],dt=dtstr,ft=freetxt)
     loss_str='../trained_models/loss_{}.pt'.format(hyperpar_str)
-    ROC_str='../trained_models/ROC_{}.csv'.format(hyperpar_str)
+    ROC_str='../trained_models/ROC_{}'.format(hyperpar_str)
     plot_str='../trained_models/{}'.format(hyperpar_str)
     
     net = DeepSet(hs_point=hyperpars['hs_calo'],hs_trk=hyperpars['hs_trk'],hs_sj=hyperpars['hs_sj'],num_modules=hyperpars['num_modules'],module_depth=hyperpars['module_depth'],DOfrac=hyperpars['dropout'],GlobAtt=hyperpars['GlobAtt'])
@@ -60,6 +60,13 @@ def run_training_DeepSet(sampled_g,n_epochs,hyperpars,save_model=False):
     validation_acc_vs_epoch = []
     best_loss=np.inf
     
+    init_t_acc, init_t_loss = steerer.compute_accuracy_and_loss(train_dataloader)
+    init_v_acc, init_v_loss = steerer.compute_accuracy_and_loss(train_dataloader)
+    training_loss_vs_epoch.append( init_t_loss)    
+    training_acc_vs_epoch.append( init_t_acc ) 
+    validation_loss_vs_epoch.append( init_v_loss )
+    validation_acc_vs_epoch.append( init_v_acc )
+    
     for epoch in pbar:
         preloss = steerer.train(train_dataloader)
         
@@ -79,8 +86,13 @@ def run_training_DeepSet(sampled_g,n_epochs,hyperpars,save_model=False):
             best_loss=valid_loss
             if save_model:
                 torch.save(net.state_dict(), loss_str)
-    
-    return {'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
+    if save_model:
+        net.load_state_dict(torch.load(loss_str,map_location='cpu'))
+    acc, loss, preds, cpreds, labels = steerer.compute_test_metrics(test_dataloader)
+    if save_model:
+        print("Test-set loss for saved model: {}".format(loss))
+        print("Test-set accuracy for saved model: {}".format(acc))
+    return {'test_labels':labels,'test_preds':preds,'class_preds':cpreds,'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
 
 def run_training_DNN(n_epochs,hyperpars,skip=False,save_model=False):
     train_ds = MLPDataset("../dataset_train_balanced_v02.csv")
@@ -94,7 +106,7 @@ def run_training_DNN(n_epochs,hyperpars,skip=False,save_model=False):
     freetxt='ForOptuna_Feb2024'
     hyperpar_str='DNN_HS{hs}xDepth{nl}{sk}DO{DO}_weight{regw}_scFeats_noposw_Adam_lr{lr}_BS{bs}_{dt}_{ft}'.format(hs=hyperpars['HS'],nl=hyperpars['numLayers'],sk=('_skip_' if skip else '_'),DO=hyperpars['dropout'],regw=hyperpars['l2weight'],lr=hyperpars['lrate'],bs=hyperpars['BSize'],dt=dtstr,ft=freetxt)
     loss_str='../trained_models/loss_{}.pt'.format(hyperpar_str)
-    ROC_str='../trained_models/ROC_{}.csv'.format(hyperpar_str)
+    ROC_str='../trained_models/ROC_{}'.format(hyperpar_str)
     plot_str='../trained_models/{}'.format(hyperpar_str)
     
     net = DNN(useSkip=skip,DOfrac=hyperpars['dropout'],HSize=hyperpars['HS'],nLayers=hyperpars['numLayers'])
@@ -117,6 +129,13 @@ def run_training_DNN(n_epochs,hyperpars,skip=False,save_model=False):
     validation_acc_vs_epoch = []
     best_loss=np.inf
     
+    init_t_acc, init_t_loss = steerer.compute_accuracy_and_loss(train_dataloader)
+    init_v_acc, init_v_loss = steerer.compute_accuracy_and_loss(train_dataloader)
+    training_loss_vs_epoch.append( init_t_loss)    
+    training_acc_vs_epoch.append( init_t_acc ) 
+    validation_loss_vs_epoch.append( init_v_loss )
+    validation_acc_vs_epoch.append( init_v_acc )       
+    
     for epoch in pbar:
         preloss = steerer.train(train_dataloader)
         
@@ -137,7 +156,13 @@ def run_training_DNN(n_epochs,hyperpars,skip=False,save_model=False):
             if save_model:
                 torch.save(net.state_dict(), loss_str)
     
-    return {'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
+    if save_model:
+        net.load_state_dict(torch.load(loss_str,map_location='cpu'))
+    acc, loss,preds,cpreds,labels = steerer.compute_test_metrics(test_dataloader)
+    if save_model:
+        print("Test-set loss for saved model: {}".format(loss))
+        print("Test-set accuracy for saved model: {}".format(acc))
+    return {'test_labels':labels,'test_preds':preds,'class_preds':cpreds,'best_loss':best_loss,'train_prog':[training_loss_vs_epoch,training_acc_vs_epoch],'valid_prog':[validation_loss_vs_epoch,validation_acc_vs_epoch],"loss_str":loss_str,"ROC_str":ROC_str,"plot_str":plot_str}
 
 
 def run_training_CNN(n_epochs,hyperpars,save_model=False):
@@ -253,6 +278,42 @@ class DNNSteerer:
             final_loss+=loss.item()
         return final_loss / n_batches
     
+    def compute_test_metrics(self,dataloader,threshold=0.5):
+        total = 0
+        correct = 0
+        loss = 0
+        net=self.model
+        preds = []
+        class_preds=[]
+        labels=[]
+        
+        sig=nn.Sigmoid()
+        if torch.cuda.is_available():
+            net.cuda()
+            sig.to(torch.device('cuda'))
+        
+        net.eval()
+        n_batches=0
+        with torch.no_grad():
+            for x,y in dataloader:
+                n_batches+=1      
+                if torch.cuda.is_available():
+                    x=x.cuda()
+                    y=y.cuda()
+                    self.loss_fn.to(torch.device('cuda'))
+                logits = net(x).view(-1)
+                labels.extend(y.flatten().tolist())
+                loss += self.loss_fn(logits,y.float()).item()
+                pred=sig(logits)
+                preds.extend(pred.flatten().tolist())
+                pred=torch.where(pred>threshold,1,0)
+                class_preds.extend(pred.flatten().tolist())
+                correct+=len(torch.where(pred==y)[0])
+                total+=len(y)
+        loss=loss/n_batches
+        accuracy = correct/total
+        return accuracy, loss, preds, class_preds, labels
+    
     
 class DeepSetSteerer:
     def __init__(self,model,optimizer,loss_fn):
@@ -310,3 +371,42 @@ class DeepSetSteerer:
             self.optimizer.step()
             final_loss+=loss.item()
         return final_loss / n_batches
+    
+    def compute_test_metrics(self,dataloader,threshold=0.5):
+        loss = 0
+        accuracy = 0
+        n_batches = 0
+        total = 0
+        correct = 0
+        net=self.model
+        preds=[]
+        class_preds=[]
+        labels_out=[]
+        
+        sig=nn.Sigmoid()
+        if torch.cuda.is_available():
+            net.cuda()
+            sig.to(torch.device('cuda'))
+        
+        net.eval()
+        n_batches=0
+        with torch.no_grad():
+            for batched_g in dataloader:
+                n_batches+=1      
+                if torch.cuda.is_available():
+                    batched_g = batched_g.to(torch.device('cuda'))
+                    self.loss_fn.to(torch.device('cuda'))
+                predicted_g = net(batched_g)
+                logits = predicted_g.nodes['global'].data['properties'].view(-1)
+                labels = predicted_g.nodes['global'].data['TruthMatch']
+                labels_out.extend(labels.flatten().tolist())
+                loss += self.loss_fn(logits,labels.float()).item()
+                pred=sig(logits)
+                preds.extend(pred.flatten().tolist())
+                pred=torch.where(pred>threshold,1,0)
+                class_preds.extend(pred.flatten().tolist())
+                correct+=len(torch.where(pred==labels)[0])
+                total+=len(labels)
+        loss=loss/n_batches
+        accuracy = correct/total
+        return accuracy, loss, preds, class_preds, labels_out

@@ -10,12 +10,12 @@ version='ForOptuna_Feb2024'
 
 def objective(trial):
     hpars = {
-        "BSize":trial.suggest_int("BSize",512,1024),
-        "HS":trial.suggest_int("HS",16,64),
-        "lrate":trial.suggest_float("lrate",1e-3,1e-3),
-        "l2weight":trial.suggest_float("l2weight",1e-5,1e-5),
-        "dropout":trial.suggest_float("dropout",0.05,0.25),
-        "numLayers":trial.suggest_int("numLayers",3,9)
+        "BSize":trial.suggest_int("BSize",512,2048),
+        "HS":trial.suggest_int("HS",48,48),
+        "lrate":trial.suggest_float("lrate",5e-4,5e-2,log=True),
+        "l2weight":trial.suggest_float("l2weight",5e-6,5e-4,log=True),
+        "dropout":trial.suggest_float("dropout",0.05,0.3,log=True),
+        "numLayers":trial.suggest_int("numLayers",5,5)
     }
     outputs = run_training_DNN(n_epochs=100,hyperpars=hpars,skip=False)
     print("Best loss of {} achieved!".format(outputs['best_loss']))
@@ -32,3 +32,7 @@ if __name__=="__main__":
     outputs = run_training_DNN(n_epochs=100,hyperpars=trial_.params,save_model=True)
     plot_history(outputs['train_prog'][0],outputs['valid_prog'][0],outputs['plot_str'],'Loss',"png")
     plot_history(outputs['train_prog'][1],outputs['valid_prog'][1],outputs['plot_str'],'Accuracy',"png")
+    plot_confusion_matrix(outputs['test_labels'],outputs['class_preds'],None,outputs['plot_str'],"ConfMat_noNorm",outformat="png")
+    plot_confusion_matrix(outputs['test_labels'],outputs['class_preds'],'true',outputs['plot_str'],"ConfMat_Norm",outformat="png")
+    auc = export_roc(outputs['test_labels'],outputs['test_preds'],outputs['ROC_str'])
+    print("Study done, best AUC of {} achieved!".format(auc))
